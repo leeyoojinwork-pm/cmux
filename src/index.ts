@@ -228,6 +228,8 @@ function helpPayload(): object {
       { type: 'section', text: { type: 'mrkdwn', text: '*💼 /job* — 취준 AI\nJD 분석, 이력서 피드백, 면접 질문\n예: `/job JD 분석: [JD 내용 붙여넣기]`' } },
       { type: 'section', text: { type: 'mrkdwn', text: '*📚 /lecture* — 강의 AI\n피드백 생성, 공지 초안, PDF 문구\n예: `/lecture 공지 초안: 3주차 zoom 링크 변경`' } },
       { type: 'section', text: { type: 'mrkdwn', text: '*💰 /money* — 재무 AI\n수익 기록, 지출 체크, 월간 리포트\n예: `/money 수익 기록: 500000 멋사 강의료`' } },
+      { type: 'section', text: { type: 'mrkdwn', text: '*🔍 /think* — PM 분석 AI\n문제 5Why 분석, 임팩트×실현가능성 4분면, 30분 검증 액션\n예: `/think 문제 분석: 수강생 이탈이 3주차에 집중됨`' } },
+      { type: 'section', text: { type: 'mrkdwn', text: '*📋 /brief* — 기획 AI\n아이디어 → 1페이지 기획서 즉시 생성, 기능 명세, PRD 초안\n예: `/brief 기획서: 강의 피드백 자동화 도구`' } },
       { type: 'divider' },
       { type: 'section', text: { type: 'mrkdwn', text: '*⚙️ /log [메모]* — 시스템로그에 기록\n*❓ /help* — 이 도움말 보기' } },
     ],
