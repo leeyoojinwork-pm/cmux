@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smux — AI 운영팀 대시보드</title>
+  <style>
+    /* ── 디자인 토큰 ─────────────────────────────── */
+    :root {
+      --color-bg:        #0D1117;
+      --color-surface:   #161B22;
+      --color-border:    #21262D;
+      --color-hover:     #1C2128;
+
+      --color-text-primary:   #E6EDF3;
+      --color-text-secondary: #8B949E;
+      --color-text-muted:     #484F58;
+
+      --color-indigo:    #7C3AED;
+      --color-indigo-lt: #A78BFA;
+      --color-blue:      #3B82F6;
+      --color-blue-lt:   #93C5FD;
+      --color-amber:     #F59E0B;
+      --color-amber-lt:  #FCD34D;
+      --color-rose:      #F43F5E;
+      --color-rose-lt:   #FDA4AF;
+      --color-green:     #10B981;
+      --color-green-lt:  #6EE7B7;
+
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  14px;
+
+      --space-xs:  4px;
+      --space-sm:  8px;
+      --space-md:  16px;
+      --space-lg:  24px;
+      --space-xl:  32px;
+      --space-2xl: 48px;
+
+      --font-base: 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+      --lh-body:   1.75;
+      --lh-tight:  1.6; /* 한글 최소 1.6 이상 */
+    }
+
+    /* ── 리셋 & 기본 ─────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-base);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      line-height: var(--lh-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      /* 한글 단어 단위 줄바꿈 */
+      word-break: keep-all;
+      overflow-wrap: break-word;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* ── 레이아웃 ─────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── 사이드바 ─────────────────────────────────── */
+    .sidebar {
+      grid-row: 1 / -1;
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      padding: var(--space-lg) var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--color-indigo), var(--color-blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-text-primary);
+    }
+    .logo-sub {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    .nav { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      padding: var(--space-sm) var(--space-sm) var(--space-xs);
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      min-height: 36px;
+      /* 텍스트 넘침 방지 */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .nav-item:hover { background: var(--color-hover); color: var(--color-text-primary); }
+    .nav-item.active {
+      background: rgba(124,58,237,0.15);
+      color: var(--color-indigo-lt);
+    }
+    .nav-item .nav-icon { flex-shrink: 0; font-size: 16px; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-green);
+      margin-right: var(--space-xs);
+      flex-shrink: 0;
+    }
+    .status-text {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    /* ── 헤더 ─────────────────────────────────────── */
+    .topbar {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-md) var(--space-xl);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      min-height: 60px;
+    }
+    .topbar-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      /* 긴 제목: flex로 자연 줄어들고 말줄임 처리 */
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .topbar-meta {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-green  { background: rgba(16,185,129,0.15); color: var(--color-green-lt); }
+    .badge-indigo { background: rgba(124,58,237,0.15); color: var(--color-indigo-lt); }
+    .badge-amber  { background: rgba(245,158,11,0.15); color: var(--color-amber-lt); }
+    .badge-rose   { background: rgba(244,63,94,0.15);  color: var(--color-rose-lt); }
+    .badge-blue   { background: rgba(59,130,246,0.15); color: var(--color-blue-lt); }
+
+    /* ── 메인 콘텐츠 ─────────────────────────────── */
+    .main {
+      padding: var(--space-xl);
+      /* overflow-y: auto 제거 — layout이 min-height라 스크롤 영역 생성 안 됨.
+         body 자연 스크롤 + sidebar sticky로 처리 */
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+    }
+
+    /* ── 섹션 헤더 ───────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-md);
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+    .section-link {
+      font-size: 12px;
+      color: var(--color-indigo-lt);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* ── 스탯 카드 ───────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--space-md);
+    }
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      transition: border-color 0.15s;
+    }
+    .stat-card:hover { border-color: var(--color-indigo); }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      /* 긴 라벨 줄바꿈 허용 */
+      word-break: keep-all;
+      line-height: var(--lh-tight);
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .stat-value.indigo { color: var(--color-indigo-lt); }
+    .stat-value.green  { color: var(--color-green-lt); }
+    .stat-value.amber  { color: var(--color-amber-lt); }
+    .stat-value.blue   { color: var(--color-blue-lt); }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      margin-top: auto;
+      word-break: keep-all;
+      line-height: var(--lh-tight);
+    }
+
+    /* ── 에이전트 그리드 ─────────────────────────── */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: var(--space-md);
+    }
+    .agent-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .agent-card:hover {
+      border-color: var(--color-indigo);
+      transform: translateY(-1px);
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .agent-emoji {
+      font-size: 22px;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 2px;
+    }
+    .agent-meta { flex: 1; min-width: 0; }
+    .agent-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      /* 긴 이름 줄바꿈 */
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      line-height: var(--lh-tight);
+    }
+    .agent-command {
+      font-size: 12px;
+      color: var(--color-indigo-lt);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      margin-top: 2px;
+    }
+
+    .agent-desc {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--lh-body);
+      /* 긴 설명 자동 줄바꿈 */
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      flex: 1;
+      /* 최대 3줄, 더 길면 말줄임 */
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .agent-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--color-border);
+    }
+    .agent-channel {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      /* URL/채널명 오버플로 처리 */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .agent-count {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── 로그 테이블 ─────────────────────────────── */
+    .log-table-wrap {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      /* 작은 화면: 가로 스크롤, 세로는 자연스럽게 */
+      overflow-x: auto;
+    }
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+    .log-table thead tr {
+      border-bottom: 1px solid var(--color-border);
+    }
+    .log-table th {
+      padding: var(--space-sm) var(--space-md);
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .log-table td {
+      padding: var(--space-sm) var(--space-md);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+      line-height: var(--lh-body);
+    }
+    .log-table tbody tr:last-child td { border-bottom: none; }
+    .log-table tbody tr:hover td { background: var(--color-hover); }
+
+    .log-cmd {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--color-indigo-lt);
+      white-space: nowrap;
+    }
+    .log-user {
+      white-space: nowrap;
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+    .log-request {
+      /* 긴 요청 텍스트 — 2줄까지만 표시 */
+      max-width: 320px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      line-height: var(--lh-body);
+    }
+    .log-time {
+      white-space: nowrap;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* ── 빠른 실행 ───────────────────────────────── */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-sm);
+    }
+    .quick-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      min-height: 52px;
+      /* 텍스트 줄바꿈 허용 */
+      white-space: normal;
+      word-break: keep-all;
+    }
+    .quick-btn:hover {
+      background: var(--color-hover);
+      border-color: var(--color-indigo);
+    }
+    .quick-btn-icon { font-size: 18px; flex-shrink: 0; }
+    .quick-btn-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      line-height: var(--lh-tight);
+    }
+    .quick-btn-sub {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      line-height: var(--lh-tight);
+      word-break: keep-all;
+    }
+
+    /* ── 알림/노트 ───────────────────────────────── */
+    .notice {
+      display: flex;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-indigo);
+      background: rgba(124,58,237,0.08);
+      /* 긴 텍스트 줄바꿈 */
+      word-break: keep-all;
+      overflow-wrap: break-word;
+    }
+    .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .notice-body { flex: 1; min-width: 0; }
+    .notice-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-xs);
+      line-height: var(--lh-tight);
+    }
+    .notice-text {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--lh-body);
+    }
+
+    /* ── 반응형 ──────────────────────────────────── */
+
+    /* 태블릿 (768px 이하) */
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr;
+      }
+      .sidebar {
+        grid-row: auto; /* 1열 레이아웃에서 grid-row: 1/-1 리셋 필수 */
+        grid-column: auto;
+        position: static;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: var(--space-md);
+        gap: var(--space-md);
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+        overflow-x: auto;
+      }
+      .logo { flex-shrink: 0; }
+      .logo-sub { display: none; }
+      .nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+      }
+      .nav-label { display: none; }
+      .nav-item { white-space: nowrap; }
+      .sidebar-footer { display: none; }
+
+      .topbar {
+        padding: var(--space-md);
+      }
+      /* topbar-title은 flex:1 min-width:0으로 자동 줄어듦 — max-width 별도 불필요 */
+
+      .main {
+        padding: var(--space-md);
+        gap: var(--space-lg);
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .agents-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 모바일 (480px 이하) */
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-sm);
+      }
+      .stat-card { padding: var(--space-md); min-height: 80px; }
+      .stat-value { font-size: 22px; }
+
+      .topbar {
+        padding: var(--space-sm) var(--space-md);
+      }
+      .topbar-meta { display: none; }
+
+      .quick-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* 최소 모바일 (360px) */
+    @media (max-width: 360px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .quick-grid { grid-template-columns: 1fr; }
+      .main { padding: var(--space-sm); }
+    }
+
+    /* ── 시스템 정보 카드 값 (stat-value 재사용 금지) ── */
+    .sys-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      margin-top: var(--space-sm);
+      line-height: var(--lh-tight);
+      word-break: break-all; /* 긴 서비스명 깨짐 방지 */
+    }
+
+    /* ── 인라인 스타일 제거 → 클래스화 ─────────────── */
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .sidebar-footer-version {
+      margin-top: 6px;
+      color: var(--color-text-muted);
+      font-size: 12px;
+    }
+
+    /* ── 유틸 ────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--color-border);
+    }
+    .text-muted { color: var(--color-text-muted); }
+    .text-sm { font-size: 13px; }
+    .font-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+
+    /* 스크롤바 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ─── 사이드바 ─────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">⚡</div>
+      <div>
+        <div class="logo-text">smux</div>
+        <div class="logo-sub">AI 운영팀 OS</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">메뉴</div>
+      <div class="nav-item active">
+        <span class="nav-icon">📊</span> 대시보드
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">🤖</span> 에이전트
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">🗂️</span> 히스토리
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">📅</span> 일정
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">💰</span> 재무
+      </div>
+      <div class="nav-label">시스템</div>
+      <div class="nav-item">
+        <span class="nav-icon">⚙️</span> 설정
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon">📋</span> 로그
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-text">
+        <span class="status-dot"></span>
+        Worker 정상 동작 중
+      </div>
+      <div class="status-text sidebar-footer-version">
+        v0.1.0 · Cloudflare Workers
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── 탑바 ─────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-title">대시보드 — 오늘의 AI 운영 현황</div>
+    <div class="topbar-actions">
+      <span class="badge badge-green"><span>●</span> 운영 중</span>
+      <span class="topbar-meta" id="clock">로딩 중...</span>
+    </div>
+  </header>
+
+  <!-- ─── 메인 ─────────────────────────────────── -->
+  <main class="main">
+
+    <!-- 공지 -->
+    <div class="notice">
+      <div class="notice-icon">💡</div>
+      <div class="notice-body">
+        <div class="notice-title">오늘 AI 운영팀 요약</div>
+        <div class="notice-text">
+          총 23건의 Slash Command가 처리됐어요. /content 가 9건으로 가장 많았고,
+          평균 응답 시간은 2.4초였습니다. 금요일 자동 주간 회고는 오늘 오후 5시 예정입니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- 통계 -->
+    <section>
+      <div class="section-header">
+        <span class="section-title">오늘의 사용 현황</span>
+        <span class="section-link">전체 보기 →</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">오늘 총 요청</div>
+          <div class="stat-value indigo">23</div>
+          <div class="stat-sub">어제 대비 +5건 (↑28%)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">활성 에이전트</div>
+          <div class="stat-value green">5</div>
+          <div class="stat-sub">kim · content · job · lecture · money</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">평균 응답 시간</div>
+          <div class="stat-value blue">2.4s</div>
+          <div class="stat-sub">Claude API 기준 (목표: 3s 이내)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">이번 주 총 요청</div>
+          <div class="stat-value amber">137</div>
+          <div class="stat-sub">주간 회고 금 17:00 자동 생성 예정</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 에이전트 -->
+    <section>
+      <div class="section-header">
+        <span class="section-title">AI 에이전트 현황</span>
+        <span class="section-link">설정 변경 →</span>
+      </div>
+      <div class="agents-grid">
+
+        <div class="agent-card">
+          <div class="agent-header">
+            <div class="agent-emoji">👔</div>
+            <div class="agent-meta">
+              <div class="agent-name">대표 AI — 김 대표</div>
+              <div class="agent-command">/kim</div>
+            </div>
+            <span class="badge badge-green">활성</span>
+          </div>
+          <div class="agent-desc">
+            하루 우선순위 정리, 회고, 다음 액션 결정. 1인 창업자의 개인 비서이자 COO 역할.
+            감정적 위로보다 실용적 액션에 집중하는 대표 에이전트.
+          </div>
+          <div class="agent-footer">
+            <span class="agent-channel">📢 #00-대표실</span>
+            <span class="agent-count">오늘 7건</span>
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-header">
+            <div class="agent-emoji">✍️</div>
+            <div class="agent-meta">
+              <div class="agent-name">콘텐츠 AI — 콘텐츠 디렉터</div>
+              <div class="agent-command">/content</div>
+            </div>
+            <span class="badge badge-green">활성</span>
+          </div>
+          <div class="agent-desc">
+            블로그 초안, X 스레드, 인스타 릴스, 후기형 정보글 기획 및 초안 작성.
+            후킹→본문→CTA 구조로 바로 실행 가능한 초안 제공. 오늘 최다 사용.
+          </div>
+          <div class="agent-footer">
+            <span class="agent-channel">📢 #02-콘텐츠팀</span>
+            <span class="agent-count">오늘 9건</span>
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-header">
+            <div class="agent-emoji">💼</div>
+            <div class="agent-meta">
+              <div class="agent-name">취준 AI — 냉정한 HR 담당자</div>
+              <div class="agent-command">/job</div>
+            </div>
+            <span class="badge badge-green">활성</span>
+          </div>
+          <div class="agent-desc">
+            JD 분석, 자소서 피드백, 이력서 약점 지적, 면접 예상 질문 생성.
+            팩트 중심, 점수 후하게 주지 않음 (평균 자소서 50~60점).
+          </div>
+          <div class="agent-footer">
+            <span class="agent-channel">📢 #03-취준팀</span>
+            <span class="agent-count">오늘 3건</span>
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-header">
+            <div class="agent-emoji">📚</div>
+            <div class="agent-meta">
+              <div class="agent-name">강의 AI — 강의 운영 매니저</div>
+              <div class="agent-command">/lecture</div>
+            </div>
+            <span class="badge badge-green">활성</span>
+          </div>
+          <div class="agent-desc">
+            멋쟁이사자처럼 AI 자동화 실무 과정 운영 지원. 참여자 숙제 피드백,
+            주차별 PDF 리포트, 공지문·안내문 초안 작성. 따뜻하지만 명확한 멘토 톤.
+          </div>
+          <div class="agent-footer">
+            <span class="agent-channel">📢 #04-강의운영팀</span>
+            <span class="agent-count">오늘 2건</span>
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-header">
+            <div class="agent-emoji">💰</div>
+            <div class="agent-meta">
+              <div class="agent-name">재무 AI — 개인 CFO</div>
+              <div class="agent-command">/money</div>
+            </div>
+            <span class="badge badge-green">활성</span>
+          </div>
+          <div class="agent-desc">
+            수익/지출 기록, 월간 재무 리포트, 목표 대비 진행률 추적.
+            지출이 수익의 30% 초과 시 자동 경고. Notion 재무 DB 자동 저장.
+          </div>
+          <div class="agent-footer">
+            <span class="agent-channel">📢 #05-재무팀</span>
+            <span class="agent-count">오늘 2건</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 빠른 실행 -->
+    <section>
+      <div class="section-header">
+        <span class="section-title">빠른 실행</span>
+      </div>
+      <div class="quick-grid">
+        <div class="quick-btn">
+          <span class="quick-btn-icon">🌅</span>
+          <div>
+            <div class="quick-btn-text">아침 브리핑</div>
+            <div class="quick-btn-sub">KST 09:00 자동 발송</div>
+          </div>
+        </div>
+        <div class="quick-btn">
+          <span class="quick-btn-icon">📊</span>
+          <div>
+            <div class="quick-btn-text">주간 회고 생성</div>
+            <div class="quick-btn-sub">금 17:00 자동 · 수동 실행 가능</div>
+          </div>
+        </div>
+        <div class="quick-btn">
+          <span class="quick-btn-icon">📅</span>
+          <div>
+            <div class="quick-btn-text">오늘 일정 확인</div>
+            <div class="quick-btn-sub">Google Calendar 동기화</div>
+          </div>
+        </div>
+        <div class="quick-btn">
+          <span class="quick-btn-icon">🗂️</span>
+          <div>
+            <div class="quick-btn-text">히스토리 조회</div>
+            <div class="quick-btn-sub">최근 50건 D1 DB 기록</div>
+          </div>
+        </div>
+        <div class="quick-btn">
+          <span class="quick-btn-icon">📝</span>
+          <div>
+            <div class="quick-btn-text">수동 로그 기록</div>
+            <div class="quick-btn-sub">/log [메모] → 시스템로그</div>
+          </div>
+        </div>
+        <div class="quick-btn">
+          <span class="quick-btn-icon">❓</span>
+          <div>
+            <div class="quick-btn-text">도움말 보기</div>
+            <div class="quick-btn-sub">/help → 전체 명령어 안내</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 최근 히스토리 -->
+    <section>
+      <div class="section-header">
+        <span class="section-title">최근 봇 사용 히스토리</span>
+        <span class="section-link">전체 히스토리 →</span>
+      </div>
+      <div class="log-table-wrap">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>명령어</th>
+              <th>사용자</th>
+              <th>요청 내용</th>
+              <th>시간</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="log-cmd">/content</span></td>
+              <td class="log-user">이유진</td>
+              <td><div class="log-request">블로그 초안: 을지로 힙한 카페 솔직 방문 후기 — 인테리어, 메뉴, 가격 전부 다 얘기해줘</div></td>
+              <td class="log-time">오후 2:47</td>
+              <td><span class="badge badge-green">완료</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-cmd">/kim</span></td>
+              <td class="log-user">이유진</td>
+              <td><div class="log-request">오늘 할 일: 멋사 강의 3주차 피드백 마감, AI 자동화 블로그 발행, 포트폴리오 피그마 최종 정리</div></td>
+              <td class="log-time">오전 9:12</td>
+              <td><span class="badge badge-green">완료</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-cmd">/lecture</span></td>
+              <td class="log-user">이유진</td>
+              <td><div class="log-request">피드백 생성: 3주차 김민준 Notion AI 자동화 숙제 — 트리거 설정까지 완료했는데 실제 실행 안 됨</div></td>
+              <td class="log-time">오전 11:30</td>
+              <td><span class="badge badge-green">완료</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-cmd">/job</span></td>
+              <td class="log-user">이유진</td>
+              <td><div class="log-request">JD 분석: 카카오 AI PM 채용공고 — 서비스 기획 3년 이상, LLM 기반 제품 경험 우대, 데이터 분석 필수</div></td>
+              <td class="log-time">오후 1:05</td>
+              <td><span class="badge badge-green">완료</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-cmd">/money</span></td>
+              <td class="log-user">이유진</td>
+              <td><div class="log-request">수익 기록: 850000 멋쟁이사자처럼 AI 자동화 컨설턴트 5월분 강의료</div></td>
+              <td class="log-time">오전 10:44</td>
+              <td><span class="badge badge-green">완료</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-cmd">/content</span></td>
+              <td class="log-user">이유진</td>
+              <td><div class="log-request">스레드 초안: Claude로 하루 운영하는 PM의 실제 루틴 공개 — 슬랙 명령어부터 자동 회고까지</div></td>
+              <td class="log-time">오후 3:20</td>
+              <td><span class="badge badge-amber">처리중</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 시스템 정보 -->
+    <section>
+      <div class="section-header">
+        <span class="section-title">시스템 정보</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">런타임</div>
+          <div class="sys-value">Cloudflare Workers</div>
+          <div class="stat-sub">엣지 런타임 · 전 세계 300+ PoP</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">데이터베이스</div>
+          <div class="sys-value">D1 + Notion</div>
+          <div class="stat-sub">히스토리 D1 · 콘텐츠/재무 Notion</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">AI 모델</div>
+          <div class="sys-value">Claude API</div>
+          <div class="stat-sub">Anthropic · claude-3-5-sonnet</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">외부 연동</div>
+          <div class="sys-value">4개 서비스</div>
+          <div class="stat-sub">Slack · Google Calendar · Notion · D1</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // 실시간 시계
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // 네비게이션 클릭
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
